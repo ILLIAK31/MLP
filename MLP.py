@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import time
+import copy
 
 class MLPApproximator:
 
@@ -108,10 +109,50 @@ class MLPApproximator:
     
     def pre_algo_sgd_simple(self):
         return
-    
+
     def algo_sgd_simple(self, l):
         self.weights_[l] -= self.learning_rate * self.gradients[l]
         self.weights0_[l] -= self.learning_rate * self.gradients0[l]
+
+    def pre_algo_sgd_momentum(self):
+        self.velocity_w = [np.zeros_like(w) for w in self.weights_]
+        self.velocity_b = [np.zeros_like(b) for b in self.weights0_]
+
+    def algo_sgd_momentum(self, l):
+        self.velocity_w[l] = self.momentum_beta * self.velocity_w[l] + self.learning_rate * self.gradients[l]
+        self.velocity_b[l] = self.momentum_beta * self.velocity_b[l] + self.learning_rate * self.gradients0[l]
+        self.weights_[l] -= self.velocity_w[l]
+        self.weights0_[l] -= self.velocity_b[l]
+
+    def pre_algo_rmsprop(self):
+        self.squared_grad_w = [np.zeros_like(w) for w in self.weights_]
+        self.squared_grad_b = [np.zeros_like(b) for b in self.weights0_]
+
+    def algo_rmsprop(self, l):
+        self.squared_grad_w[l] = self.rmsprop_beta * self.squared_grad_w[l] + (1 - self.rmsprop_beta) * (self.gradients[l] ** 2)
+        self.squared_grad_b[l] = self.rmsprop_beta * self.squared_grad_b[l] + (1 - self.rmsprop_beta) * (self.gradients0[l] ** 2)
+        self.weights_[l] -= self.learning_rate * self.gradients[l] / (np.sqrt(self.squared_grad_w[l]) + self.rmsprop_epsilon)
+        self.weights0_[l] -= self.learning_rate * self.gradients0[l] / (np.sqrt(self.squared_grad_b[l]) + self.rmsprop_epsilon)
+
+    def pre_algo_adam(self):
+        self.m_w = [np.zeros_like(w) for w in self.weights_]
+        self.v_w = [np.zeros_like(w) for w in self.weights_]
+        self.m_b = [np.zeros_like(b) for b in self.weights0_]
+        self.v_b = [np.zeros_like(b) for b in self.weights0_]
+
+    def algo_adam(self, l):
+        t = self.t + 1
+        self.m_w[l] = self.adam_beta1 * self.m_w[l] + (1 - self.adam_beta1) * self.gradients[l]
+        self.v_w[l] = self.adam_beta2 * self.v_w[l] + (1 - self.adam_beta2) * (self.gradients[l] ** 2)
+        m_w_hat = self.m_w[l] / (1 - self.adam_beta1 ** t)
+        v_w_hat = self.v_w[l] / (1 - self.adam_beta2 ** t)
+        self.weights_[l] -= self.learning_rate * m_w_hat / (np.sqrt(v_w_hat) + self.adam_epsilon)
+
+        self.m_b[l] = self.adam_beta1 * self.m_b[l] + (1 - self.adam_beta1) * self.gradients0[l]
+        self.v_b[l] = self.adam_beta2 * self.v_b[l] + (1 - self.adam_beta2) * (self.gradients0[l] ** 2)
+        m_b_hat = self.m_b[l] / (1 - self.adam_beta1 ** t)
+        v_b_hat = self.v_b[l] / (1 - self.adam_beta2 ** t)
+        self.weights0_[l] -= self.learning_rate * m_b_hat / (np.sqrt(v_b_hat) + self.adam_epsilon)
 
     def fit(self, X, y):
         np.random.seed(self.seed)
@@ -222,7 +263,7 @@ if __name__ == '__main__':
     X_test, y_test = fake_data(m_test, domain, noise_std)
 
     approx = MLPApproximator(structure=[32, 16, 8], activation_name="relu", targets_activation_name="linear", initialization_name="uniform", 
-                             algo_name="sgd_simple", learning_rate=1e-3, n_epochs=1000, batch_size=10)
+                             algo_name="adam", learning_rate=1e-3, n_epochs=1000, batch_size=10)
     print(f"APPROXIMATOR: {approx}")
 
     approx.fit(X_train, y_train)
@@ -236,3 +277,22 @@ if __name__ == '__main__':
     print(f"LOSS TRAIN (MSE): {train_loss}")
     print(f"LOSS TEST (MSE): {test_loss}")
     print("MLP DEMO DONE.")
+
+    epochs = list(approx.history_weights.keys())
+    train_losses = []
+    test_losses = []
+    for epoch in epochs:
+        approx.weights_ = approx.history_weights[epoch]
+        approx.weights0_ = approx.history_weights0[epoch]
+        train_losses.append(np.mean((approx.predict(X_train) - y_train)**2))
+        test_losses.append(np.mean((approx.predict(X_test) - y_test)**2))
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(epochs, train_losses, label="Train Loss", color="blue")
+    plt.plot(epochs, test_losses, label="Test Loss", color="red")
+    plt.xlabel("Epoch")
+    plt.ylabel("Mean Squared Error (MSE)")
+    plt.title("Loss During Training")
+    plt.legend()
+    plt.grid()
+    plt.show()
