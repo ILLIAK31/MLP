@@ -5,7 +5,6 @@ import time
 import copy
 
 class MLPApproximator:
-
     ALGO_NAMES = ["sgd_simple", "sgd_momentum", "rmsprop", "adam"]
 
     def __init__(self, structure=[16, 8, 4], activation_name="relu", targets_activation_name="linear", initialization_name="uniform", 
@@ -28,7 +27,6 @@ class MLPApproximator:
         self.history_weights = {}
         self.history_weights0 = {}
         self.n_params = None
-        # params / constants for algorithms
         self.momentum_beta = 0.9
         self.rmsprop_beta = 0.9
         self.rmsprop_epsilon = 1e-7
@@ -165,8 +163,8 @@ class MLPApproximator:
         self.loss_d_ = getattr(MLPApproximator, self.loss_name + "_d")
         self.pre_algo_ = getattr(self, "pre_algo_" + self.algo_name)
         self.algo_ = getattr(self, "algo_" + self.algo_name)                
-        self.weights_ = [None] # so that network inputs are considered layer 0, and actual layers of neurons are numbered 1, 2, ...  
-        self.weights0_ = [None] # so that network inputs are considered layer 0, and actual layers of neurons are numbered 1, 2, ...
+        self.weights_ = [None]  
+        self.weights0_ = [None]
         m, n = X.shape
         if len(y.shape) == 1:
             y = np.array([y]).T
@@ -258,22 +256,16 @@ if __name__ == '__main__':
         X = np.random.rand(m, 2) * domain
         y = np.cos(X[:, 0] * X[:, 1]) * np.cos(2 * X[:, 0]) + np.random.randn(m) * noise_std
         return X, y
-
     X_train, y_train = fake_data(m_train, domain, noise_std)
     X_test, y_test = fake_data(m_test, domain, noise_std)
-
     approx = MLPApproximator(structure=[32, 16, 8], activation_name="relu", targets_activation_name="linear", initialization_name="uniform", 
                              algo_name="adam", learning_rate=1e-3, n_epochs=1000, batch_size=10)
     print(f"APPROXIMATOR: {approx}")
-
     approx.fit(X_train, y_train)
-
     y_pred_train = approx.predict(X_train)
     y_pred_test = approx.predict(X_test)
-
     train_loss = np.mean((y_pred_train - y_train)**2)
     test_loss = np.mean((y_pred_test - y_test)**2)
-
     print(f"LOSS TRAIN (MSE): {train_loss}")
     print(f"LOSS TEST (MSE): {test_loss}")
     print("MLP DEMO DONE.")
