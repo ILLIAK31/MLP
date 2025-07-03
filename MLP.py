@@ -244,10 +244,9 @@ class MLPApproximator:
         return y_pred
 
 if __name__ == '__main__':
-    print("MLP DEMO...")
     domain = 1.5 * np.pi
     noise_std = 0.1
-    m_train, m_test = 1000, 10000
+    m_train, m_test = 10000, 100000
     print(f"DATA SETTINGS: domain={domain}, noise_std={noise_std}, m_train={m_train}, m_test={m_test}")
 
     def fake_data(m, domain, noise_std):
