@@ -6,7 +6,6 @@ import copy
 
 class MLPApproximator:
     ALGO_NAMES = ["sgd_simple", "sgd_momentum", "rmsprop", "adam"]
-
     def __init__(self, structure=[16, 8, 4], activation_name="relu", targets_activation_name="linear", initialization_name="uniform", 
                  algo_name="sgd_simple", learning_rate=1e-2,  n_epochs=100, batch_size=10, seed=0,
                  verbosity_e=100, verbosity_b=10):        
